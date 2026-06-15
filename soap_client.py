@@ -9,6 +9,11 @@ from requests.auth import HTTPBasicAuth
 
 BASE_HOST = 'http://evb.sivdc.systems:5004/ep/any'
 
+# Binding names confirmed from WSDL — used to override the soap:address per mandant
+_BINDINGS = {
+    'ias_invoice_receipt_w01': '{http://webservice.kvasy.siv.de/}IAS_INVOICE_RECEIPT_W01WebservicePortBinding',
+}
+
 
 def _client(ep, service_name):
     session = Session()
@@ -18,20 +23,18 @@ def _client(ep, service_name):
     mandant = ep['mandant']
     base = f"{BASE_HOST}/{mandant}/webservices/{service_name}"
 
-    # WSDL URL: no /service suffix — per kVASy docs: .../webservices/{service}?wsdl
+    # Confirmed WSDL URL form: .../webservices/{service}?wsdl  (no /service suffix)
     wsdl_url = f"{base}?wsdl"
-    # Actual SOAP endpoint: .../webservices/{service}/service
+    # Actual SOAP endpoint
     endpoint_url = f"{base}/service"
 
     client = Client(wsdl_url, transport=transport)
 
-    # The WSDL soap:address may point to the internal port-5001 URL.
-    # Override it to ensure all SOAP calls go to our authenticated port-5004 URL.
+    # Override soap:address so all calls go to the correct mandant URL at port 5004
+    binding_name = _BINDINGS.get(service_name) or list(client.wsdl.bindings.keys())[0]
     try:
-        binding_name = list(client.wsdl.bindings.keys())[0]
         return client.create_service(binding_name, endpoint_url)
-    except (IndexError, Exception):
-        # Fallback: return client as-is; endpoint from WSDL will be used
+    except Exception:
         return client.service
 
 

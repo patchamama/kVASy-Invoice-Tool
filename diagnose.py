@@ -104,7 +104,8 @@ if not test_ep:
 ep_id, cred = test_ep
 mandant = cred['url'].split('/ep/any/')[1].split('/')[0]
 
-# Try both WSDL URL variants
+# Confirmed working form from WSDL: ?wsdl (no /service suffix)
+# /service?wsdl kept as fallback for compatibility
 wsdl_variants = [
     f"http://{HOST}:{PORT}/ep/any/{mandant}/webservices/ias_invoice_receipt_w01?wsdl",
     f"http://{HOST}:{PORT}/ep/any/{mandant}/webservices/ias_invoice_receipt_w01/service?wsdl",

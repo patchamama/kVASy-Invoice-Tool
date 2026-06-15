@@ -24,6 +24,27 @@ A lightweight web-based tool for browsing and downloading invoices from a kVASy 
 
 ## Installation from scratch
 
+### Windows (recommended — one-click installer)
+
+1. Install [Git for Windows](https://git-scm.com/download/win) if you don't have it
+2. Open a terminal in the folder where you want to install the tool and clone the repo:
+   ```cmd
+   git clone https://github.com/patchamama/kVASy-Invoice-Tool.git
+   cd kVASy-Invoice-Tool
+   ```
+3. Double-click **`install.bat`**
+
+The installer will:
+- Check if Python 3.11+ is installed; if not, download and install it automatically (via `winget` or direct download from python.org)
+- Create a virtual environment in `.venv\`
+- Install all Python dependencies
+- Create `config.py` from the template if it doesn't exist yet
+- Launch the app at `http://localhost:5224`
+
+> After the first run, use **`start.bat`** to start the app — no need to run the installer again.
+
+### Linux / macOS
+
 ```bash
 git clone https://github.com/patchamama/kVASy-Invoice-Tool.git
 cd kVASy-Invoice-Tool
@@ -142,7 +163,9 @@ kVASy-Invoice-Tool/
 ├── requirements.txt     # Python dependencies
 ├── VERSION              # Current version string
 ├── start.sh             # Linux/macOS launcher
-├── start.bat            # Windows launcher
+├── start.bat            # Windows launcher (menu: diagnostic / app)
+├── install.bat          # Windows one-click installer (double-click to run)
+├── install.ps1          # PowerShell installer script (called by install.bat)
 ├── templates/
 │   └── index.html       # Single-page frontend (Tailwind CSS)
 ├── static/
