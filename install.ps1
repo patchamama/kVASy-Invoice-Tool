@@ -122,7 +122,7 @@ Write-Host "  Starting $APP_NAME at http://localhost:$PORT" -ForegroundColor Gre
 Write-Host '  Press Ctrl+C to stop the server.' -ForegroundColor Gray
 Write-Host ''
 
-Start-Process "http://localhost:$PORT" -ErrorAction SilentlyContinue &
+Start-Process "http://localhost:$PORT" -ErrorAction SilentlyContinue
 
 $env:FLASK_RUN_PORT = $PORT
 & $python app.py
