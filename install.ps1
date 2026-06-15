@@ -21,16 +21,33 @@ function Write-Fatal {
 }
 
 function Find-Python {
+    # 1) Commands already on PATH
     foreach ($cmd in @('python', 'python3', 'py')) {
         try {
             $out = & $cmd --version 2>&1
             if ($out -match 'Python (\d+\.\d+)') {
-                if ([version]$Matches[1] -ge $MIN_PYTHON) {
-                    return $cmd
-                }
+                if ([version]$Matches[1] -ge $MIN_PYTHON) { return $cmd }
             }
-        } catch {
-            # not found, try next
+        } catch {}
+    }
+    # 2) Known install locations (current user + system, versions 3.11-3.13)
+    $roots = @(
+        "$env:LOCALAPPDATA\Programs\Python",
+        "$env:ProgramFiles\Python",
+        'C:\Python'
+    )
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        foreach ($dir in (Get-ChildItem $root -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending)) {
+            $exe = Join-Path $dir.FullName 'python.exe'
+            if (Test-Path $exe) {
+                try {
+                    $out = & $exe --version 2>&1
+                    if ($out -match 'Python (\d+\.\d+)') {
+                        if ([version]$Matches[1] -ge $MIN_PYTHON) { return $exe }
+                    }
+                } catch {}
+            }
         }
     }
     return $null
@@ -69,7 +86,7 @@ if ($null -eq $pythonCmd) {
 
     $pythonCmd = Find-Python
     if ($null -eq $pythonCmd) {
-        Write-Fatal "Python installed but not found on PATH.`n         Close this window, open a new terminal, and re-run install.bat."
+        Write-Fatal "Python was installed but could not be located.`n         Close this window, open a new terminal, and re-run install.bat."
     }
 }
 
