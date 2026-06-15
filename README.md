@@ -26,14 +26,28 @@ A lightweight web-based tool for browsing and downloading invoices from a kVASy 
 
 ### Windows (recommended — one-click installer)
 
+**Option A — download ZIP (no Git required)**
+
+Open PowerShell and run:
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/patchamama/kVASy-Invoice-Tool/archive/refs/heads/main.zip" -OutFile "$env:TEMP\kVASy-Invoice-Tool.zip"
+Expand-Archive "$env:TEMP\kVASy-Invoice-Tool.zip" -DestinationPath "C:\kVASy-Invoice-Tool" -Force
+cd "C:\kVASy-Invoice-Tool\kVASy-Invoice-Tool-main"
+```
+
+Then double-click **`install.bat`**.
+
+**Option B — clone with Git**
+
 1. Install Git if you don't have it — open PowerShell and run:
    ```powershell
    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe" -OutFile "$env:TEMP\git-installer.exe"
    Start-Process "$env:TEMP\git-installer.exe" -ArgumentList "/SILENT" -Wait
    ```
    Then close and reopen the terminal so Git is available on PATH.
-2. Open a terminal in the folder where you want to install the tool and clone the repo:
-   ```cmd
+2. Clone the repo:
+   ```powershell
    git clone https://github.com/patchamama/kVASy-Invoice-Tool.git
    cd kVASy-Invoice-Tool
    ```
