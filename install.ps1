@@ -2,10 +2,11 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$APP_NAME   = 'kVASy Invoice Tool'
-$MIN_PYTHON = [version]'3.11'
-$PYTHON_URL = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
-$PORT       = 5224
+$APP_NAME      = 'kVASy Invoice Tool'
+$MIN_PYTHON    = [version]'3.11'
+$PYTHON_URL    = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
+$PYTHON_FIXDIR = 'C:\Python312'
+$PORT          = 5224
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
@@ -75,18 +76,25 @@ if ($null -eq $pythonCmd) {
         Write-Fatal "Could not download Python. Check your internet connection and retry."
     }
 
-    Write-Warn 'Running Python installer silently...'
-    Start-Process $installer -ArgumentList '/quiet InstallAllUsers=0 PrependPath=1 Include_test=0' -Wait
+    Write-Warn "Installing Python to $PYTHON_FIXDIR ..."
+    $args = "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0 TargetDir=$PYTHON_FIXDIR"
+    Start-Process $installer -ArgumentList $args -Wait
     Remove-Item $installer -Force -ErrorAction SilentlyContinue
 
-    # Refresh PATH in current session
-    $machinePath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
-    $userPath    = [System.Environment]::GetEnvironmentVariable('Path', 'User')
-    $env:Path    = "$machinePath;$userPath"
+    # Use the fixed path directly — no PATH refresh needed
+    $fixedExe = Join-Path $PYTHON_FIXDIR 'python.exe'
+    if (Test-Path $fixedExe) {
+        $pythonCmd = $fixedExe
+        Write-Ok "Python found at $fixedExe"
+    } else {
+        # Last resort: refresh PATH and search again
+        $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
+                    [System.Environment]::GetEnvironmentVariable('Path','User')
+        $pythonCmd = Find-Python
+    }
 
-    $pythonCmd = Find-Python
     if ($null -eq $pythonCmd) {
-        Write-Fatal "Python was installed but could not be located.`n         Close this window, open a new terminal, and re-run install.bat."
+        Write-Fatal "Python was installed but could not be located at $PYTHON_FIXDIR.`n         Close this window, open a new terminal, and re-run install.bat."
     }
 }
 
