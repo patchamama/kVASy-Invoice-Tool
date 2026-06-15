@@ -12,6 +12,7 @@ BASE_HOST = 'http://evb.sivdc.systems:5004/ep/any'
 # Binding names confirmed from WSDL — used to override the soap:address per mandant
 _BINDINGS = {
     'ias_invoice_receipt_w01': '{http://webservice.kvasy.siv.de/}IAS_INVOICE_RECEIPT_W01WebservicePortBinding',
+    'ias_creditor_w02':        '{http://webservice.kvasy.siv.de/}IAS_CREDITOR_W02WebservicePortBinding',
 }
 
 
@@ -68,8 +69,8 @@ def ping(ep):
 
 
 def discover_company_numbers(ep):
-    """IAS_CREDITOR_W01.get_cred_own_customer_no() — no args → all company_numbers."""
-    svc = _client(ep, 'ias_creditor_w01')
+    """IAS_CREDITOR_W02.get_cred_own_customer_no() — no args → all company_numbers."""
+    svc = _client(ep, 'ias_creditor_w02')
     result = svc.get_cred_own_customer_no()
     seen, out = set(), []
     for rec in (result or []):

@@ -66,7 +66,12 @@ def api_discover_companies(endpoint_id):
         companies = soap_client.discover_company_numbers(ep)
         return jsonify({'companies': companies})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        msg = str(e)
+        if '401' in msg:
+            msg = ('401 Unauthorized on ias_creditor_w02 — '
+                   'these credentials may not have access to the Creditor module. '
+                   'Enter the company number manually instead.')
+        return jsonify({'error': msg}), 500
 
 
 @app.post('/api/list-invoices')
