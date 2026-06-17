@@ -9,10 +9,19 @@ from requests.auth import HTTPBasicAuth
 
 BASE_HOST = 'http://evb.sivdc.systems:5004/ep/any'
 
-# Binding names confirmed from WSDL — used to override the soap:address per mandant
+_NS = 'http://webservice.kvasy.siv.de/'
+
+# Service version names used by this client. Bump here when the server exposes a newer version.
+SVC_INVOICE_RECEIPT = 'ias_invoice_receipt_w02'
+SVC_RECHNUNGSEINGANG = 'ias_rechnungseingang_w03'
+SVC_CREDITOR = 'ias_creditor_w02'
+
+# Binding names confirmed from each service WSDL — used to override the soap:address per mandant
 _BINDINGS = {
-    'ias_invoice_receipt_w01': '{http://webservice.kvasy.siv.de/}IAS_INVOICE_RECEIPT_W01WebservicePortBinding',
-    'ias_creditor_w02':        '{http://webservice.kvasy.siv.de/}IAS_CREDITOR_W02WebservicePortBinding',
+    'ias_invoice_receipt_w01': f'{{{_NS}}}IAS_INVOICE_RECEIPT_W01WebservicePortBinding',
+    'ias_invoice_receipt_w02': f'{{{_NS}}}IAS_INVOICE_RECEIPT_W02WebservicePortBinding',
+    'ias_rechnungseingang_w03': f'{{{_NS}}}IAS_RECHNUNGSEINGANG_W03WebservicePortBinding',
+    'ias_creditor_w02':        f'{{{_NS}}}IAS_CREDITOR_W02WebservicePortBinding',
 }
 
 
@@ -61,7 +70,7 @@ def _to_json(obj):
 
 def ping(ep):
     try:
-        svc = _client(ep, 'ias_invoice_receipt_w01')
+        svc = _client(ep, SVC_INVOICE_RECEIPT)
         svc.ping()
         return {'ok': True}
     except Exception as e:
@@ -85,18 +94,36 @@ def discover_company_numbers(ep):
 
 
 def list_invoices(ep, company_number, beleg_nr=None):
-    """IAS_RECHNUNGSEINGANG_W03.geteingangrechnungen — betriebNr mandatory, belegNr optional."""
-    svc = _client(ep, 'ias_rechnungseingang_w03')
-    kwargs = {'betriebNr': company_number}
+    """IAS_RECHNUNGSEINGANG_W03.geteingangrechnungen — search incoming invoices.
+
+    Per the WSDL the method takes a single record `pi_rechnungimp` (type
+    rechnungsimport_rectype). `betriebNr` is mandatory, `belegNr` is optional.
+    The result record `eingangRechngenResult_rectype` contains:
+      - resultrec      → processing result / error message
+      - rechnungimptab → table (list) of the found invoices
+    """
+    svc = _client(ep, SVC_RECHNUNGSEINGANG)
+    rec = {'betriebNr': company_number}
     if beleg_nr:
-        kwargs['belegNr'] = beleg_nr
-    result = svc.geteingangrechnungen(**kwargs)
-    return _to_json(result) or []
+        rec['belegNr'] = beleg_nr
+
+    result = svc.geteingangrechnungen(pi_rechnungimp=rec)
+    data = _to_json(result) or {}
+
+    # Surface a server-side error message instead of returning silently empty
+    res = (data.get('resultrec') or {}) if isinstance(data, dict) else {}
+    if res and not _result_ok(res):
+        raise RuntimeError(_result_message(res))
+
+    invoices = data.get('rechnungimptab') if isinstance(data, dict) else None
+    if invoices is None:
+        return []
+    return invoices if isinstance(invoices, list) else [invoices]
 
 
 def get_invoice(ep, document_number, company_number):
-    """IAS_INVOICE_RECEIPT_W01.get_incoming_invoices — single invoice by doc+company number."""
-    svc = _client(ep, 'ias_invoice_receipt_w01')
+    """IAS_INVOICE_RECEIPT_W02.get_incoming_invoices — single invoice by doc+company number."""
+    svc = _client(ep, SVC_INVOICE_RECEIPT)
     result = svc.get_incoming_invoices(
         pi_incoming_invoice_rec={
             'document_number': document_number,
@@ -107,3 +134,20 @@ def get_invoice(ep, document_number, company_number):
     if isinstance(data, list):
         return data[0] if data else None
     return data
+
+
+def _result_ok(res):
+    """defaultresult_rectype carries a status/error. Treat missing error as OK."""
+    for key in ('error', 'errorcode', 'error_code', 'fehler', 'fehlercode'):
+        val = res.get(key)
+        if val not in (None, '', 0, '0', False):
+            return False
+    return True
+
+
+def _result_message(res):
+    for key in ('message', 'errormessage', 'error_message', 'hinweis', 'meldung', 'text'):
+        val = res.get(key)
+        if val:
+            return str(val)
+    return 'Service returned an error result'
